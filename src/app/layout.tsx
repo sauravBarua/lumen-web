@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 // Runs before paint so the saved (or system) theme never flashes.
-const themeScript = `try{var t=localStorage.getItem('lumen-theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`;
+const themeScript = `try{var p=localStorage.getItem('lumen-theme-pref')||localStorage.getItem('lumen-theme');var d=p==='dark'||(p!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

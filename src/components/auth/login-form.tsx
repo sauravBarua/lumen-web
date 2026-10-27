@@ -7,12 +7,14 @@ import { useForm } from 'react-hook-form';
 import { FormAlert } from '@/components/auth/form-alert';
 import { TextField } from '@/components/auth/text-field';
 import { Button } from '@/components/ui/button';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { loginAction } from '@/lib/auth/actions';
 import { safeRedirect } from '@/lib/safe-redirect';
 import { type LoginValues, loginSchema } from '@/lib/schemas/auth';
 
 export function LoginForm({ callbackUrl, notice }: { callbackUrl?: string; notice?: string }) {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [pending, startTransition] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function LoginForm({ callbackUrl, notice }: { callbackUrl?: string; notic
           disabled={loading}
           {...register('password')}
         />
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full" loading={loading} disabled={!hydrated}>
           {loading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>

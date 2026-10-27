@@ -1,4 +1,5 @@
 import { Logo } from '@/components/logo';
+import { SessionUnlock } from '@/components/session-unlock';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 /** Two-column auth layout: brand panel (desktop only) + the form column. */
@@ -11,6 +12,7 @@ export function AuthShell({
 }) {
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
+      <SessionUnlock />
       <section
         className="relative hidden overflow-hidden bg-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between"
         aria-hidden="true"

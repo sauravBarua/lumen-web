@@ -7,12 +7,14 @@ import { useForm } from 'react-hook-form';
 import { FormAlert } from '@/components/auth/form-alert';
 import { TextField } from '@/components/auth/text-field';
 import { Button } from '@/components/ui/button';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { registerAction } from '@/lib/auth/actions';
 import type { FieldName } from '@/lib/auth/types';
 import { type RegisterValues, registerSchema } from '@/lib/schemas/auth';
 
 export function RegisterForm() {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [pending, startTransition] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export function RegisterForm() {
           disabled={loading}
           {...register('password')}
         />
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full" loading={loading} disabled={!hydrated}>
           {loading ? 'Creating account…' : 'Create account'}
         </Button>
       </form>

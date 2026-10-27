@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Session } from 'next-auth';
 import { SessionProvider, signOut, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { Toaster } from '@/components/common/toaster';
+import { DialogHost } from '@/components/dialogs/dialog-host';
+import { RealtimeProvider } from '@/components/realtime-provider';
 
 /** When the API rejects the refresh token the session is dead: send the user to sign in again. */
 function SessionWatcher() {
@@ -25,10 +28,14 @@ export function Providers({ session, children }: { session: Session; children: R
   );
 
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} refetchOnWindowFocus={false}>
       <QueryClientProvider client={queryClient}>
-        <SessionWatcher />
-        {children}
+        <RealtimeProvider>
+          <SessionWatcher />
+          {children}
+          <DialogHost />
+          <Toaster />
+        </RealtimeProvider>
       </QueryClientProvider>
     </SessionProvider>
   );

@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Placeholders: enough to build and run the app; real secrets are never needed in CI.
+  API_URL: http://localhost:3001
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  AUTH_SECRET: ci-only-secret-ci-only-secret-0123456789
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # The API lives in its own repository: clone it next to the workspace (a private repo needs the
+      # API_REPO_TOKEN secret: a token with read access to lumen-api).
+      - name: Clone lumen-api
+        env:
+          TOKEN: ${{ secrets.API_REPO_TOKEN || github.token }}
+        run: git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${{ github.repository_owner }}/lumen-api.git" "$RUNNER_TEMP/lumen-api"
+      - name: Start the API with its dependencies
+        working-directory: ${{ runner.temp }}/lumen-api
+        run: |
+          cp .env.example .env
+          echo "AUTH_THROTTLE_LIMIT=1000" >> .env
+          docker compose --profile app up -d --build
+      - name: Wait for the API
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:3001/api/v1/health/ready && exit 0
+            sleep 2
+          done
+          docker compose --project-directory "$RUNNER_TEMP/lumen-api" --profile app logs --no-color
+          exit 1
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+      - name: Stop the API
+        if: always()
+        working-directory: ${{ runner.temp }}/lumen-api
+        run: docker compose --profile app down -v
+
+  image:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001 -t lumen-web:ci .
