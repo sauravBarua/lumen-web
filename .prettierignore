@@ -1,0 +1,5 @@
+.next
+coverage
+pnpm-lock.yaml
+src/lib/api/schema.d.ts
+src/lib/socket-events.ts
